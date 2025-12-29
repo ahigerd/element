@@ -14,88 +14,6 @@
 
 namespace element {
 
-class PluginsPopupMenu : public PopupMenu
-{
-public:
-    PluginsPopupMenu (Component* sender)
-    {
-        jassert (sender != nullptr);
-        auto* cc = ViewHelpers::findContentComponent (sender);
-        jassert (cc != nullptr);
-        plugins = &cc->context().plugins();
-        jassert (plugins != nullptr);
-        available = plugins->getKnownPlugins().getTypes();
-    }
-
-    bool isPluginResultCode (const int resultCode)
-    {
-        // clang-format off
-        return (plugins->getKnownPlugins().getIndexChosenByMenu (available, resultCode) >= 0) ||
-               (isPositiveAndBelow (int (resultCode - SelectPresetMin), unverified.size()));
-        // clang-format on
-    }
-
-    PluginDescription getPluginDescription (int resultCode, bool& verified)
-    {
-        jassert (plugins != nullptr);
-        int index = plugins->getKnownPlugins().getIndexChosenByMenu (available, resultCode);
-        if (isPositiveAndBelow (index, available.size()))
-        {
-            verified = true;
-            return available.getReference (index);
-        }
-
-        verified = false;
-        index = resultCode - SelectPresetMin;
-        return isPositiveAndBelow (index, unverified.size())
-                   ? *unverified.getUnchecked (index)
-                   : PluginDescription();
-    }
-
-    void addPluginItems()
-    {
-        if (hasAddedPlugins)
-            return;
-        hasAddedPlugins = true;
-        plugins->getKnownPlugins().addToMenu (*this, available, KnownPluginList::sortByManufacturer);
-
-        PopupMenu unvMenu;
-        unverified.clearQuick (true);
-        for (const auto& name : Util::compiledAudioPluginFormats())
-        {
-            PopupMenu menu;
-            const int lastSize = unverified.size();
-            plugins->getUnverifiedPlugins (name, unverified);
-            if (auto* format = plugins->getAudioPluginFormat (name))
-            {
-                for (int i = lastSize; i < unverified.size(); ++i)
-                    menu.addItem (i + SelectPresetMin, format->getNameOfPluginFromIdentifier (unverified.getUnchecked (i)->fileOrIdentifier));
-            }
-            else if (name == "LV2")
-            {
-                for (int i = lastSize; i < unverified.size(); ++i)
-                    menu.addItem (i + SelectPresetMin, unverified[i]->name);
-            }
-
-            if (menu.getNumItems() > 0)
-                unvMenu.addSubMenu (name, menu);
-        }
-
-        if (unvMenu.getNumItems() > 0)
-        {
-            addSeparator();
-            addSubMenu ("Unverified", unvMenu);
-        }
-    }
-
-private:
-    Array<PluginDescription> available;
-    OwnedArray<PluginDescription> unverified;
-    PluginManager* plugins { nullptr };
-    bool hasAddedPlugins = false;
-};
-
-//==============================================================================
 class NodePopupMenu : public PopupMenu
 {
 public:
@@ -651,5 +569,88 @@ private:
         return "Unknown Item";
     }
 };
+
+//==============================================================================
+class PluginsPopupMenu : public PopupMenu
+{
+public:
+    PluginsPopupMenu (Component* sender)
+    {
+        jassert (sender != nullptr);
+        auto* cc = ViewHelpers::findContentComponent (sender);
+        jassert (cc != nullptr);
+        plugins = &cc->context().plugins();
+        jassert (plugins != nullptr);
+        available = plugins->getKnownPlugins().getTypes();
+    }
+
+    bool isPluginResultCode (const int resultCode)
+    {
+        // clang-format off
+        return (plugins->getKnownPlugins().getIndexChosenByMenu (available, resultCode) >= 0) ||
+               (isPositiveAndBelow (int (resultCode - NodePopupMenu::SelectPresetMin), unverified.size()));
+        // clang-format on
+    }
+
+    PluginDescription getPluginDescription (int resultCode, bool& verified)
+    {
+        jassert (plugins != nullptr);
+        int index = plugins->getKnownPlugins().getIndexChosenByMenu (available, resultCode);
+        if (isPositiveAndBelow (index, available.size()))
+        {
+            verified = true;
+            return available.getReference (index);
+        }
+
+        verified = false;
+        index = resultCode - NodePopupMenu::SelectPresetMin;
+        return isPositiveAndBelow (index, unverified.size())
+                   ? *unverified.getUnchecked (index)
+                   : PluginDescription();
+    }
+
+    void addPluginItems()
+    {
+        if (hasAddedPlugins)
+            return;
+        hasAddedPlugins = true;
+        plugins->getKnownPlugins().addToMenu (*this, available, KnownPluginList::sortByManufacturer);
+
+        PopupMenu unvMenu;
+        unverified.clearQuick (true);
+        for (const auto& name : Util::compiledAudioPluginFormats())
+        {
+            PopupMenu menu;
+            const int lastSize = unverified.size();
+            plugins->getUnverifiedPlugins (name, unverified);
+            if (auto* format = plugins->getAudioPluginFormat (name))
+            {
+                for (int i = lastSize; i < unverified.size(); ++i)
+                    menu.addItem (i + NodePopupMenu::SelectPresetMin, format->getNameOfPluginFromIdentifier (unverified.getUnchecked (i)->fileOrIdentifier));
+            }
+            else if (name == "LV2")
+            {
+                for (int i = lastSize; i < unverified.size(); ++i)
+                    menu.addItem (i + NodePopupMenu::SelectPresetMin, unverified[i]->name);
+            }
+
+            if (menu.getNumItems() > 0)
+                unvMenu.addSubMenu (name, menu);
+        }
+
+        if (unvMenu.getNumItems() > 0)
+        {
+            addSeparator();
+            addSubMenu ("Unverified", unvMenu);
+        }
+    }
+
+private:
+    Array<PluginDescription> available;
+    OwnedArray<PluginDescription> unverified;
+    PluginManager* plugins { nullptr };
+    bool hasAddedPlugins = false;
+};
+
 
 } // namespace element
